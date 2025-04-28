@@ -33,9 +33,3 @@ The tool is built using MATLAB's GUIDE framework and provides a simple, interact
 - **Add Segment**: Choose signal type and parameters for each segment.
 - **Transform**: Apply amplitude scaling, time shift, expansion/compression, or time reversal.
 - **Plot**: View original and processed signals.
-
-## License
-This project is open source and available under the [MIT License](LICENSE).
-
-## Acknowledgements
-Built with MATLAB GUIDE for educational purposes.
