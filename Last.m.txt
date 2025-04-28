@@ -1,0 +1,614 @@
+function varargout = Last(varargin)
+% LAST MATLAB code for Last.fig
+%      LAST, by itself, creates a new LAST or raises the existing
+%      singleton*.
+%
+%      H = LAST returns the handle to a new LAST or the handle to
+%      the existing singleton*.
+%
+%      LAST('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in Last.M with the given input arguments.
+%
+%      LAST('Property','Value',...) creates a new LAST or raises the
+%      existing singleton*.  Starting from the left, property value pairs are
+%      applied to the GUI before Last_OpeningFcn gets called.  An
+%      unrecognized property name or invalid value makes property application
+%      stop.  All inputs are passed to Last_OpeningFcn via varargin.
+%
+%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
+%      instance to run (singleton)".
+%
+% See also: GUIDE, GUIDATA, GUIHANDLES
+
+% Edit the above text to modify the response to help Last
+
+% Last Modified by GUIDE v2.5 15-Apr-2025 22:50:58
+
+% Begin initialization code - DO NOT EDIT
+gui_Singleton = 1;
+gui_State = struct('gui_Name',       mfilename, ...
+                   'gui_Singleton',  gui_Singleton, ...
+                   'gui_OpeningFcn', @Last_OpeningFcn, ...
+                   'gui_OutputFcn',  @Last_OutputFcn, ...
+                   'gui_LayoutFcn',  [] , ...
+                   'gui_Callback',   []);
+if nargin && ischar(varargin{1})
+    gui_State.gui_Callback = str2func(varargin{1});
+end
+
+if nargout
+    [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
+else
+    gui_mainfcn(gui_State, varargin{:});
+end
+% End initialization code - DO NOT EDIT
+
+% --- Executes just before Last is made visible.
+function Last_OpeningFcn(hObject, eventdata, handles, varargin)
+
+handles.output = hObject;
+
+% Initialize handles fields
+handles.f = 0; % Sampling Frequency
+handles.t1 = 0; % Global Start Time (Might be updated later)
+handles.t2 = 0; % Global End Time (Might be updated later)
+handles.n = 0; % Number of Breakpoints
+handles.TimePoints = []; % Stores breakpoint times (if needed)
+handles.Final_Signal = []; % Initialize as empty NUMERIC array for concatenated signal
+handles.Final_Time = []; % Initialize as empty NUMERIC array for concatenated time
+handles.b = 0;
+
+% --- Initially Hide Controls ---
+% Hide signal definition section until 'Begin' is pressed
+set(handles.popupmenu1, 'Visible', 'off');
+set(handles.start, 'Visible', 'off');
+set(handles.ending, 'Visible', 'off');
+set(handles.text2, 'Visible', 'off'); % Label for Function Adder
+set(handles.text6, 'Visible', 'off'); % Label for Interval
+set(handles.text9, 'Visible', 'off'); % Label for Start 
+set(handles.text10, 'Visible', 'off'); % Label for End 
+set(handles.add, 'Visible', 'off');    % Hide Add button initially
+
+% Hide all parameter edit boxes and their labels initially
+set(handles.amp, 'Visible', 'off');
+set(handles.textamp, 'Visible', 'off');
+set(handles.freq, 'Visible', 'off');
+set(handles.textfreq, 'Visible', 'off');
+set(handles.inter, 'Visible', 'off');
+set(handles.textinter, 'Visible', 'off');
+set(handles.slp, 'Visible', 'off');
+set(handles.textslp, 'Visible', 'off');
+set(handles.expo, 'Visible', 'off');
+set(handles.textexpo, 'Visible', 'off');
+set(handles.phz, 'Visible', 'off');
+set(handles.textphz, 'Visible', 'off');
+set(handles.power, 'Visible', 'off');
+set(handles.textpower, 'Visible', 'off');
+
+
+% Update handles structure
+guidata(hObject, handles);
+
+% UIWAIT makes Last wait for user response (see UIRESUME)
+% uiwait(handles.figure1);
+
+% --- Outputs from this function are returned to the command line.
+function varargout = Last_OutputFcn(hObject, eventdata, handles)
+% varargout  cell array for returning output args (see VARARGOUT);
+% Get default command line output from handles structure
+varargout{1} = handles.output;
+
+% --- Executes on button press in gridtoggle.
+function gridtoggle_Callback(hObject, eventdata, handles)
+% Toggles grid on both axes
+isGridOn = strcmp(get(handles.axes1, 'XGrid'), 'on');
+
+if isGridOn
+    grid(handles.axes1, 'off');
+    grid(handles.axes2, 'off');
+else
+    grid(handles.axes1, 'on');
+    grid(handles.axes2, 'on');
+end
+
+% Executes when we press on button Begin.
+function Begin_Callback(hObject, eventdata, handles)
+
+% Reads Sampling Freq and Breakpoints and makes signal definition section visible
+set(handles.add, 'Enable', 'on');
+f_str = get(handles.samplefreq, 'string');
+n_str = get(handles.Breakpoints, 'string');
+
+f = str2double(f_str);
+n = str2double(n_str);
+
+handles.b = n+1;
+
+% Validate inputs
+if isnan(f) || f <= 0
+    errordlg('Sampling Frequency must be a positive number.', 'Input Error');
+    return;
+end
+if isnan(n) || n < 0 || floor(n) ~= n
+    errordlg('Number of Break Points must be a non-negative integer.', 'Input Error');
+    return;
+end
+
+handles.f = f;
+handles.n = n;
+
+% Make signal definition section visible
+
+set(handles.popupmenu1, 'Visible', 'on');         % show function adder
+set(handles.start, 'Visible', 'on');
+set(handles.ending, 'Visible', 'on');
+set(handles.text2, 'Visible', 'on'); 
+set(handles.text6, 'Visible', 'on');
+set(handles.text9, 'Visible', 'on'); 
+set(handles.text10, 'Visible', 'on');
+set(handles.add, 'Visible', 'on');             % Show the Add button
+
+% Trigger the popup menu callback to show the correct initial parameters
+popupmenu1_Callback(handles.popupmenu1, eventdata, handles);
+
+% Reset signal data if Begin is pressed again
+handles.Final_Signal = [];
+handles.Final_Time = [];
+cla(handles.axes1); % Clear plot 1
+cla(handles.axes2); % Clear plot 2
+
+title(handles.axes1, 'Original Signal');
+xlabel(handles.axes1, 'Time (s)');
+ylabel(handles.axes1, 'Amplitude');
+
+guidata(hObject, handles); % Save changes
+
+% --- Executes on selection change in popupmenu1.
+
+function popupmenu1_Callback(hObject, eventdata, handles)
+
+% Get selected item
+
+contents = cellstr(get(hObject,'String'));
+selected = contents{get(hObject,'Value')};
+
+% --- Hide all parameter controls first ---
+set(handles.amp, 'Visible', 'off');
+set(handles.textamp, 'Visible', 'off');
+set(handles.freq, 'Visible', 'off');
+set(handles.textfreq, 'Visible', 'off');
+set(handles.inter, 'Visible', 'off');
+set(handles.textinter, 'Visible', 'off');
+set(handles.slp, 'Visible', 'off');
+set(handles.textslp, 'Visible', 'off');
+set(handles.expo, 'Visible', 'off');
+set(handles.textexpo, 'Visible', 'off');
+set(handles.phz, 'Visible', 'off');
+set(handles.textphz, 'Visible', 'off');
+set(handles.power, 'Visible', 'off');
+set(handles.textpower, 'Visible', 'off');
+
+% Show parameters based on selected
+switch selected
+    case 'DC'
+        set(handles.amp, 'Visible', 'on');
+        set(handles.textamp, 'Visible', 'on');
+    case 'Ramp'
+        set(handles.slp, 'Visible', 'on');      % Slope
+        set(handles.textslp, 'Visible', 'on');
+        set(handles.inter, 'Visible', 'on');    % Intercept
+        set(handles.textinter, 'Visible', 'on');
+    case 'Exponential'
+        set(handles.amp, 'Visible', 'on');      % Amplitude
+        set(handles.textamp, 'Visible', 'on');
+        set(handles.expo, 'Visible', 'on');     % Exponent
+        set(handles.textexpo, 'Visible', 'on');
+    case 'General polynomial'
+        set(handles.amp, 'Visible', 'on');      % Amplitude (Coefficient)
+        set(handles.textamp, 'Visible', 'on');
+        set(handles.power, 'Visible', 'on');    % Power
+        set(handles.textpower, 'Visible', 'on');
+        set(handles.inter, 'Visible', 'on');    % Intercept (Constant term)
+        set(handles.textinter, 'Visible', 'on');
+    case 'Sinusoidal'
+        set(handles.amp, 'Visible', 'on');      % Amplitude
+        set(handles.textamp, 'Visible', 'on');
+        set(handles.freq, 'Visible', 'on');     % Frequency
+        set(handles.textfreq, 'Visible', 'on');
+        set(handles.phz, 'Visible', 'on');      % Phase
+        set(handles.textphz, 'Visible', 'on');
+end
+
+% --- Executes on button press in add.
+
+function add_Callback(hObject, eventdata, handles)
+
+handles.k = 0;
+
+handles.b = handles.b - 1;
+
+if handles.b == 0 
+
+     set(handles.add, 'Enable', 'off');
+end
+
+% Get Inputs 
+
+f = handles.f;           % Use stored sampling frequency
+t1 = str2double(get(handles.start, 'string'));
+t2 = str2double(get(handles.ending, 'string'));
+
+% Basic Validation 
+
+ if isnan(t1)
+    errordlg('Invalid Start Time. Please enter a number.', 'Input Error');
+    return;
+end
+ if isnan(t2)
+    errordlg('Invalid End Time. Please enter a number.', 'Input Error');
+    return;
+end
+if t2 <= t1
+   errordlg('End Time must be greater than Start Time.', 'Input Error');
+   return;
+end
+
+% --- Get Selected Signal Type from Popup Menu ---
+
+contents = cellstr(get(handles.popupmenu1,'String'));        % Get list from popup
+selectedIndex = get(handles.popupmenu1,'Value');             % Get index of selected item
+selectedType = contents{selectedIndex};                      % Get the string of selected item
+
+% --- Initialize ---
+signal = [];
+
+num_intervals = round((t2 - t1) * f);    %number of samples
+samples = max(2, num_intervals + 1);     % Ensure at least 2 samples for linspace
+t = linspace(t1, t2, samples);
+
+% Generate Signal Based on Type 
+
+validInput = true;           % Flag for specific signal parameter validation
+switch selectedType          % Use the type read from the popup menu
+    case 'DC'
+        A = str2double(get(handles.amp, 'string'));
+        if isnan(A)
+            errordlg('Invalid Amplitude for DC signal.', 'Input Error');
+            validInput = false;
+        else
+            signal = A * ones(1, samples);
+        end
+    case 'Ramp'
+        slope = str2double(get(handles.slp, 'string'));
+        intercept = str2double(get(handles.inter, 'string'));
+         if isnan(slope) || isnan(intercept)
+            errordlg('Invalid Slope or Intercept for Ramp signal.', 'Input Error');
+            validInput = false;
+        else
+            % Ramp defined relative to the start of the segment (t1)
+            signal = slope * (t - t1) + intercept;
+         end
+
+    case 'Exponential'
+        A = str2double(get(handles.amp, 'string'));
+        a = str2double(get(handles.expo, 'string')); % Exponent handle
+         if isnan(A) || isnan(a)
+            errordlg('Invalid Amplitude or Exponent for Exponential signal.', 'Input Error');
+            validInput = false;
+        else
+            % Exponential defined relative to the start of the segment (t1)
+            signal = A * exp(a * (t - t1));
+        end
+    case 'General polynomial'
+        A = str2double(get(handles.amp, 'string'));
+        C = str2double(get(handles.inter, 'string')); % Intercept
+        P = str2double(get(handles.power, 'string')); % Power
+        if isnan(A) || isnan(C) || isnan(P)
+            errordlg('Invalid Amplitude, Intercept or Power for Polynomial signal.', 'Input Error');
+            validInput = false;
+        elseif P < 0 && abs(t1-t1)<eps % Avoid division by zero if t=t1 and P<0
+             errordlg('Power cannot be negative if the interval starts at time 0 for this definition.', 'Input Error');
+             validInput = false;
+        else
+             % Signal interpretation: Amplitude * (t-t1)^Power + Intercept
+             time_base = t - t1;
+             % Handle potential complex numbers if base is negative and power is non-integer
+             if any(time_base < 0) && (floor(P) ~= P)
+                  errordlg('Polynomial results in complex numbers (negative base with non-integer power).', 'Calculation Error');
+                  validInput = false;
+             else
+                 % Calculate safely
+                 signal_poly = A * (time_base.^P);
+                 signal = signal_poly + C;
+             end
+        end
+    case 'Sinusoidal'
+        A = str2double(get(handles.amp, 'string'));
+        f0 = str2double(get(handles.freq, 'string'));
+        phase = str2double(get(handles.phz, 'string')); % Phase handle
+        if isnan(A) || isnan(f0) || isnan(phase)
+            errordlg('Invalid Amplitude, Frequency or Phase for Sinusoidal signal.', 'Input Error');
+            validInput = false;
+         elseif f0 < 0
+             errordlg('Frequency cannot be negative.', 'Input Error');
+             validInput = false;
+        else
+            signal = A * sin(2 * pi * f0 * t + deg2rad(phase));
+        end
+    otherwise
+         errordlg(['Signal type "' selectedType '" not recognized in add_Callback.'], 'Implementation Error');
+         validInput = false;
+end
+
+    % --- Append and Plot if Inputs were Valid 
+    if validInput && ~isempty(signal)
+        % Retrieve existing data
+        % Ensure they are row vectors for consistent concatenation
+        Final_Time = handles.Final_Time(:)';
+        Final_Signal = handles.Final_Signal(:)';
+
+        % Append new segment data
+        % Check for overlap: If the new start time is very close to the last
+        % point of the previous signal, skip the first point of the new segment.
+        if ~isempty(Final_Time) && abs(Final_Time(end) - t(1)) < (1/(2*f))       % Tolerance: half sample period
+             if length(t) > 1                                              % Don't remove the only point if segment has 1 sample
+                 Final_Time = [Final_Time, t(2:end)];
+                 Final_Signal = [Final_Signal, signal(2:end)];
+             end
+        else
+             % No overlap or first segment, append normally
+            Final_Time = [Final_Time, t];
+            Final_Signal = [Final_Signal, signal];
+        end
+
+
+        % Store updated data back into handles
+        handles.Final_Time = Final_Time;
+        handles.Final_Signal = Final_Signal;
+        guidata(hObject, handles); % Save changes to handles
+        
+        handles.y = Final_Signal;
+        handles.x = Final_Time;
+
+        %          Plotting
+        axes(handles.axes1);                                         % Target axes1
+        cla(handles.axes1);                                          % Clear previous plot on axes1
+        plot(handles.axes1, Final_Time, Final_Signal);               % Plot the accumulated signal
+        xlabel(handles.axes1, 'Time (s)');
+        ylabel(handles.axes1, 'Amplitude');
+        title(handles.axes1, 'Original Signal'); % Add a title
+
+         %             Update Start Time for Next Segment
+         % Set the 'start' time edit box to the 'ending' time of the segment just added
+         set(handles.start, 'string', num2str(t2));
+         % Clear the end time for the user to input the next one
+         set(handles.ending, 'string', ''); 
+
+    end
+
+function pushbutton2_Callback(hObject, eventdata, handles)
+
+% This callback likely handles the signal processing operations 
+% (Expand/Compress, TimeShift, Amplitude Scaling, Time Reversal)
+% and plots the result in handles.axes2.
+
+%             Get processing parameters 
+
+    expand_compress_factor = str2double(get(handles.edit12, 'String'));             % edit12 is the name of the compress/expand edit box
+    time_shift_factor = str2double(get(handles.edit13, 'String'));                 % edit13 is the name of the time shift edit box
+    amplitude_scale_factor = str2double(get(handles.edit15, 'String'));             % edit15 is the name of the amp. scale edit box
+    isTimeReversal = get(handles.radiobutton2, 'Value');                            % radiobutton2 is the name of the time reversal radiobutton
+    
+    % Validate factors
+    if isnan(expand_compress_factor) || expand_compress_factor == 0 
+        errordlg('Invalid Expand/Compress factor. Must be a non-zero number.', 'Input Error');
+        return;
+    end
+     if isnan(time_shift_factor) 
+        errordlg('Invalid Time Shift factor. Must be a number.', 'Input Error');
+        return;
+    end
+     if isnan(amplitude_scale_factor)
+        errordlg('Invalid Amplitude Scaling factor. Must be a number.', 'Input Error');
+        return;
+    end
+    
+    % Get the original signal
+    t_original = handles.Final_Time;
+    y_original = handles.Final_Signal;
+    
+    if isempty(t_original)
+        errordlg('No signal composed yet. Add signal segments first.', 'Plot Error');
+        return;
+    end
+    
+    %           Apply transformations
+    t_processed = t_original;
+    y_processed = y_original;
+    
+    % 1. Amplitude Scaling
+    y_processed = amplitude_scale_factor * y_processed;
+    
+    % 2. Time Shift (t' = t + shift) -> t = t' + shift
+    t_processed = t_processed + time_shift_factor; 
+    
+    % 3. Expand/Compress (t'' = factor * t') -> t' = t'' / factor
+    t_processed = t_processed / expand_compress_factor;
+    
+    % 4. Time Reversal (t''' = -t'')
+    if isTimeReversal 
+        t_processed = -t_processed;
+    end
+        
+    % --- Plot processed signal in axes2 ---
+    axes(handles.axes2);
+    cla(handles.axes2); % Clear previous plot
+    plot(handles.axes2, t_processed, y_processed);
+    title(handles.axes2, 'Processed Signal');
+    xlabel(handles.axes2, 'Time (s)');
+    ylabel(handles.axes2, 'Amplitude'); 
+
+
+% --- Executes on button press in radiobutton2 (Time Reversal).
+
+function radiobutton2_Callback(hObject, eventdata, handles)
+
+% If Time Reversal is selected, deselect None
+
+if get(hObject,'Value') == get(hObject,'Max')                             % If checked
+    set(handles.radiobutton3,'Value',get(handles.radiobutton3,'Min'));    % Uncheck None
+end
+guidata(hObject, handles);
+
+
+% --- Executes on button press in radiobutton3 (None).
+function radiobutton3_Callback(hObject, eventdata, handles)
+
+k = handles.k;
+if k == 0
+
+y = handles.Final_Signal;
+x = handles.Final_Time;
+
+axes(handles.axes2);
+plot(x, y);
+grid on;
+xlabel('Time (s)');
+ylabel('Amplitude');
+title('Original Signal');
+
+handles.y = y;
+handles.x = x;
+currVal = get(handles.radiobutton2, 'Value');
+
+if currVal
+    
+    set(handles.radiobutton2, 'Value', ~currVal);
+end
+set(handles.radiobutton2, 'Enable', 'off');
+set(handles.pushbutton2, 'Enable', 'off');
+else
+    set(handles.radiobutton2, 'Enable', 'on');
+    set(handles.pushbutton2, 'Enable', 'on');
+end
+
+k = 1 - k;
+handles.k = k;
+ guidata(hObject, handles);
+
+%==========================================================================
+%         BELOW ARE CALLBACKS AND CREATEFCNS FOR INPUT FIELDS
+%         (Mostly boilerplate generated by GUIDE - No changes needed unless
+%          validation logic is added directly within them)
+%==========================================================================
+
+% --- Sampling Frequency ---
+function samplefreq_Callback(hObject, eventdata, handles)
+function samplefreq_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Breakpoints ---
+function Breakpoints_Callback(hObject, eventdata, handles)
+function Breakpoints_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Start Time ---
+function start_Callback(hObject, eventdata, handles)
+function start_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Ending Time ---
+function ending_Callback(hObject, eventdata, handles)
+function ending_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Amplitude ---
+function amp_Callback(hObject, eventdata, handles)
+function amp_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Frequency ---
+function freq_Callback(hObject, eventdata, handles)
+function freq_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Phase ---
+function phz_Callback(hObject, eventdata, handles)
+function phz_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Exponent ---
+function expo_Callback(hObject, eventdata, handles)
+function expo_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Power ---
+function power_Callback(hObject, eventdata, handles)
+function power_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Slope ---
+function slp_Callback(hObject, eventdata, handles)
+function slp_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Intercept ---
+function inter_Callback(hObject, eventdata, handles)
+function inter_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Popup Menu ---
+function popupmenu1_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Expand/Compress Factor (assuming edit12) ---
+function edit3_Callback(hObject, eventdata, handles)
+function edit3_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Time Shift Factor (assuming edit12) ---
+function edit12_Callback(hObject, eventdata, handles)
+function edit12_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Amplitude Scaling Factor (assuming edit13) ---
+function edit13_Callback(hObject, eventdata, handles)
+function edit13_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Edit15 (Not used in current logic, maybe future use?) ---
+function edit15_Callback(hObject, eventdata, handles)
+function edit15_CreateFcn(hObject, eventdata, handles)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
